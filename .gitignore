@@ -1,11 +1,12 @@
 cache/*
-output/*
+output*
 input/*
 !cache/.gitkeep
 !output/.gitkeep
 !input/.gitkeep
 .idea
-src/Parsers/Icons/imgs/*.png
+src/Parsers/Icons/imgs*
+src/Parsers/GE/icons*
 ###> symfony/framework-bundle ###
 .env
 /public/bundles/
@@ -46,3 +47,6 @@ vendor/composer/autoload_static.php
 vendor/composer/ClassLoader.php
 vendor/composer/installed.json
 vendor/composer/LICENSE
+cache*
+output*
+input*

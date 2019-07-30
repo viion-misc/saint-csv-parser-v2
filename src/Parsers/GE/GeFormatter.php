@@ -15,16 +15,20 @@ class GeFormatter
         $format = str_ireplace(array_keys($data), $data, $format);
         $format = str_ireplace('        |','|', $format);
         $format = str_ireplace("        \n","\n", $format);
-        //$format = str_ireplace('    |', '|', $format);
         $format = str_ireplace('        }}','}}', $format);
         $format = str_ireplace('        {{','{{', $format);
-        $format = preg_replace("/\n\n\n+/", "\n\n", $format);
+        $format = preg_replace("/(.*)dammy(.*)\n/", null, $format);
+        $format = preg_replace("/(.*)★未使用(.*)削除予定★(.*)\n/",null, $format);
+        $format = preg_replace("/{{Loremquote\\|Todo\d\d+\\|link=y\\|(.*)\n/", null, $format);
+        //$format = preg_replace("/\n\n\n+/", "\n\n", $format);
         $format = preg_replace("/(QuestReward.*)\n\n(?!\\|Issuing NPC)/", "$1\n", $format);
         $format = preg_replace("/(QuestReward.*)\n(\\|Issuing NPC.*)/", "$1\n\n$2", $format);
         $format = preg_replace("/\s+|\s+/", null, $format);
         $format = preg_replace("/<Emphasis>|<\\/Emphasis>/", "''", $format);
         $format = preg_replace("/<If\\(LessThan\\(PlayerParameter\\(11\\),12\\)\\)><If\\(LessThan\\(PlayerParameter\\(11\\),4\\)\\)>([^>]+)<Else\\/>([^>]+)<\\/If><Else\\/><If\\(LessThan\\(PlayerParameter\\(11\\),17\\)\\)>([^>]+)<Else\\/>([^>]+)<\\/If><\\/If>/", "{{Loremtextconditional|$1|or '$2' or '$3', depending on the time of day.}}", $format);
-        $format = preg_replace("/{{Loremquote\\|(?:System|A\d+)\\|link=y\\|(.*)}}/", "<div>'''$1'''</div>", $format);
+        $format = preg_replace("/{{Loremquote\\|Q\d+\\|link=y\\|(.*)}}/","\n{| class=\"datatable-GEtable\"\n|+$1\n|Place an answer Here <!--(Not all questions have answers and thus don't need a table, please evaluate and delete this if necessary.)-->\n|}\n", $format);
+        $format = preg_replace("/{{Loremquote\\|A\d+\\|link=y\\|(.*)}}/","!<!--Answer to copy into table above--> $1", $format);
+        $format = preg_replace("/{{Loremquote\\|(?:System)\\|link=y\\|(.*)}}/", "<div>'''$1'''</div>", $format);
         $format = preg_replace("/<Color\\(-3917469\\)>(.*)<\\/Color>/", "{{Loremascianspeak|$1}}", $format);
         $format = preg_replace("/<If\\(PlayerParameter\\(4\\)\\)>([\w\s']+)<Else\\/>([\w\s']+)<\\/If>/", "{{Loremtextmale|$2|$1}}", $format);
         $format = preg_replace("/<Color\\(-34022\\)>([\w\s,.\\/<>&'-]+)<\\/Color>/", "{{Color|Orange|$1}}", $format);
@@ -42,6 +46,12 @@ class GeFormatter
         $format = preg_replace("/\\*<If\\(LessThan\\(IntegerParameter\\(\d+\\),IntegerParameter\\(\d+\\)\\)\\)>([^<]+)<Else\\/>([^<]+)<\\/If>/", "*$1\n*$2", $format);
         //below string replacement is for adding "an" before Armorer, Alchemist, Archer, Arcanist, Astrologian, or "a" before the other Job names (due to the vowel at the beginning of the name. Silly English language...)
         $format = str_replace("<If(Equal(PlayerParameter(68),10))>an <Sheet(ClassJob,PlayerParameter(68),0)/><Else/><If(Equal(PlayerParameter(68),14))>an <Sheet(ClassJob,PlayerParameter(68),0)/><Else/><If(Equal(PlayerParameter(68),5))>an <Sheet(ClassJob,PlayerParameter(68),0)/><Else/><If(Equal(PlayerParameter(68),26))>an <Sheet(ClassJob,PlayerParameter(68),0)/><Else/><If(Equal(PlayerParameter(68),33))>an <Sheet(ClassJob,PlayerParameter(68),0)/><Else/>a <Sheet(ClassJob,PlayerParameter(68),0)/></If></If></If></If></If>","{{Loremtextconditional|an Armorer|or 'an Alchemist/Archer/Arcanist/Astrologian', or 'a JobName' (depending on your current job)}}", $format);
+        $format = preg_replace("/\\<UIForeground\\>[^<]+\\<\\/UIForeground\\>|\\<UIGlow\\>[^<]+\\<\\/UIGlow\\>|\\<72\\>[^<]+\\<\\/72\\>|\\<73\\>[^<]+\\<\\/73\\>/","",$format);
+        //regex to add a % to the end of [[EXP Bonus]] gear
+        $format = preg_replace("/(\\[\\[EXP Bonus\\]\\] \\+\d+)/", "$1%", $format);
+        $format = str_replace("= False\n", "= No\n", $format);
+        $format = str_replace("= True\n", "= Yes\n", $format);
+        $format = str_replace("|Section = Class & Job Quests", "|Section = Class and Job Quests", $format);
 
         return trim($format) . "\n\n";
     }

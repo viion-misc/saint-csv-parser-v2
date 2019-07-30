@@ -4,43 +4,38 @@ namespace App\Parsers\GE;
 
 use App\Parsers\CsvParseTrait;
 use App\Parsers\ParseInterface;
-use Symfony\Component\Console\Helper\ProgressBar;
+//use Symfony\Component\Console\Helper\ProgressBar;
 
 class Quests implements ParseInterface
 {
     use CsvParseTrait;
 
     // the wiki output format / template we shall use
-    const WIKI_FORMAT = 'http://ffxiv.gamerescape.com/wiki/{name}?action=edit
+    const WIKI_FORMAT = "{{-start-}}
+'''{name}''''
         {{ARR Infobox Quest
         |Patch = {patch}
         |Index = {id}
         |Name = {name}{types}{repeatable}{faction}{eventicon}{reputationrank}
-        |Icontype = {questicontype}.png
-        {smallimage}
+        |Icontype = {questicontype}.png{smallimage}
         |Level = {level}
-        {requiredclass}
+{requiredclass}
         |Required Affiliation =
-        |Quest Number ={instancecontent1}{instancecontent2}{instancecontent3}
+        |Quest Number ={number}{instancecontent1}{instancecontent2}{instancecontent3}
 
         |Required Quests ={prevquestspace1}{prevquest2}{prevquest3}
         |Unlocks Quests =
 
         |Objectives =
-        {objectives}
-        {expreward}{gilreward}{sealsreward}
-        {tomestones}{relations}{instanceunlock}{questrewards}{catalystrewards}{guaranteeditem7}{guaranteeditem8}{guaranteeditem9}{guaranteeditem11}{questoptionrewards}{trait}
+{objectives}{expreward}{gilreward}{sealsreward}
+{tomestones}{relations}{instanceunlock}{questrewards}{catalystrewards}{guaranteeditem7}{guaranteeditem8}{guaranteeditem9}{guaranteeditem11}{questoptionrewards}{trait}
         |Issuing NPC = {questgiver}
-        |NPC Location =
-        
-        |NPCs Involved = {npcs}
-        |Mobs Involved =
-        |Items Involved = {items}
-        |Key Items Involved = {keyitems}
-        
+        |NPC Location ={npcs}
+        |Mobs Involved ={items}{keyitems}
+
         |Description =
         |Journal =
-        {journal}
+{journal}
 
         |Strategy =
         |Walkthrough =
@@ -49,15 +44,16 @@ class Quests implements ParseInterface
         |Images =
         |Notes =
         }}
-        http://ffxiv.gamerescape.com/wiki/Loremonger:{name}?action=edit
-        <noinclude>{{Lorempageturn|prev={prevquest1}|next=}}{{Loremquestheader|{name}|Mined=X|Summary=}}</noinclude>
-        {{LoremLoc|Location=}}
-        {dialogue}';
+{{-stop-}}{{-start-}}
+'''Loremonger:{name}'''
+<noinclude>{{Lorempageturn|prev={prevquest1}|next=}}{{Loremquestheader|{name}|Mined=X|Summary=}}</noinclude>
+{{LoremLoc|Location=Hydaelyn}}<!-- Replace 'Hydaelyn' here with proper location where first dialogue is said -->
+{dialogue}{battletalk}{{-stop-}}";
 
     public function parse()
     {
         // i should pull this from xivdb :D
-        $patch = '4.35';
+        $patch = '5.0';
 
         // grab CSV files
         $questCsv = $this->csv('Quest');
@@ -241,13 +237,16 @@ class Quests implements ParseInterface
                 80117 => "\n|Event = Yo-kai Watch (2018)",
                 80118 => "\n|Event = Heavensturn (2017)",
                 80119 => "\n|Event = Heavensturn (2018)",
+                80120 => "\n|Event = Heavensturn (2019)",
+                80121 => "\n|Event = Monster Hunter World",
+                80123 => "\n|Event = A Nocturne for Heroes",
             ];
 
             // If Small Image (Quest Header Image) is greater than 0 (not blank), then display in html comment
             // with "Quest Name Image.png" as default location for the filename to be saved.
             $smallimage = false;
             if ($quest['Icon'] > 0) {
-                $string = "\n|Header Image = ". $quest['Icon'] .".png";
+                $string = "\n\n|Header Image = ". $quest['Icon'] .".png";
                 $smallimage = $string;
             }
 
@@ -307,10 +306,10 @@ class Quests implements ParseInterface
 
             // Show EXPReward if more than zero and round it down. Otherwise, blank it.
             if ($this->getQuestExp($quest) > 0) {
-                $string = "\n|EXPReward = ". floor($this->getQuestExp($quest));
+                $string = "\n\n|EXPReward = {{Information Needed}}";//. floor($this->getQuestExp($quest));
                 $expreward = $string;
             } else {
-                $string = "\n|EXPReward =";
+                $string = "\n\n|EXPReward =";
                 $expreward = $string;
             }
 
@@ -397,12 +396,14 @@ class Quests implements ParseInterface
             $InstanceContent3 = $InstanceContentCsv->at($quest['InstanceContent[2]'])['Name'];
 
             // Quest Giver Name (All Words In Name Capitalized)
-            $questgiver = ucwords(strtolower($ENpcResidentCsv->at($quest['ENpcResident{Start}'])['Singular']));
+            $questgiver = ucwords(strtolower($ENpcResidentCsv->at($quest['Issuer{Start}'])['Singular']));
 
-            // Start Quest Objectives / Journal Entry code
+            // Start Quest Objectives / Journal Entry / Dialogue code
             $objectives = [];
             $dialogue = [];
-            $journal =[];
+            $journal = [];
+            $battletalk = [];
+            $system = [];
 
             //If the Quest ID (NOT the same as id) is not empty, get the first three letters of the string after the
             //underscore (_) in its full name, and store it as $folder. ie: "BanNam305_03107" would be: $folder = 031
@@ -439,6 +440,9 @@ class Quests implements ParseInterface
 
                     // add objective
                     if ($textgroup->type == 'todo' && strlen($text) > 1) {
+                        // failed attempt at being clever
+                        //$objectives[0] = "|Description = ". $text;
+                        //unset($objectives[0]);
                         $objectives[] = '*' .$text;
                     }
 
@@ -451,6 +455,17 @@ class Quests implements ParseInterface
                     // add journal
                     if ($textgroup->type == 'journal' && strlen($text) > 1) {
                         $journal[] = '*' .$text;
+                    }
+
+                    // add battletalk
+                    if ($textgroup->type == 'battle_talk' && strlen($text) > 1) {
+                        $battletalk[0] = "\n\n=== Battle Dialogue ===";
+                        $battletalk[] = '{{Loremquote|' .$textgroup->npc .'|link=y|'. $text .'}}';
+                    }
+
+                    // add system messages
+                    if ($textgroup->type == 'system' && strlen($text) > 1) {
+                        $system[] = "\n<div>'''". $text ."'''</div>";
                     }
 
                     // ---------------------------------------------------------------
@@ -561,6 +576,7 @@ class Quests implements ParseInterface
                 '{repeatable}' => $repeatable,
                 '{faction}' => $faction,
                 '{requiredclass}' => $requiredclass,
+                '{number}' => $quest['id'],
                 '{instancecontent1}' => $InstanceContent1 ? "\n|Dungeon Requirement = ". $InstanceContent1 : "",
                 '{instancecontent2}' => $InstanceContent2 ? ", ". $InstanceContent2 : "",
                 '{instancecontent3}' => $InstanceContent3 ? ", ". $InstanceContent3 : "",
@@ -585,10 +601,12 @@ class Quests implements ParseInterface
                 '{journal}' => implode("\n", $journal),
                 '{objectives}' => implode("\n",  $objectives),
                 '{dialogue}' => implode("\n", $dialogue),
+                '{battletalk}' => implode("\n", $battletalk),
+                '{system}' => implode("\n", $system),
                 '{trait}' => $TraitRewardName,
-                '{items}' => $ItemsInvolved,
-                '{keyitems}' =>$KeyItemsInvolved,
-                '{npcs}' => $NpcsInvolved,
+                '{items}' => (!empty($ItemsInvolved)) ? "\n|Items Involved = $ItemsInvolved" : "\n|Items Involved =",
+                '{keyitems}' => (!empty($KeyItemsInvolved)) ? "\n|Key Items Involved = $KeyItemsInvolved" : "",
+                '{npcs}' => "\n\n|NPCs Involved = $NpcsInvolved",
                 //'{script}' => $questscripts,
                 //'{npclocation}' => $NpcLocation,
             ];
@@ -600,7 +618,7 @@ class Quests implements ParseInterface
         // save our data to the filename: GeQuestWiki.txt
         $this->io->progressFinish();
         $this->io->text('Saving ...');
-        $info = $this->save('GeQuestWiki.txt');
+        $info = $this->save('GeQuestWikiBot.txt');
 
         $this->io->table(
             [ 'Filename', 'Data Count', 'File Size' ],
@@ -645,6 +663,13 @@ class Quests implements ParseInterface
             return $data;
         }
 
+        if (isset($command[6]) && ($command[6] == 'BATTLETALK')) {
+            $data->type = 'battle_talk';
+            $data->npc = ucwords(strtolower($command[5]));
+            $data->order = isset($command[7]) ? intval($command[7]) : $i;
+            return $data;
+        }
+
         // build data structure from command
         switch($command[3]) {
             case 'SEQ':
@@ -686,7 +711,7 @@ class Quests implements ParseInterface
                 $npc = filter_var($command[4], FILTER_SANITIZE_STRING);
 
                 // sometimes QIB can be a todo
-                if ($npc == 'TODO') {
+                if ($npc == 'TODO' or (isset($command[5])) && ($command[5]) == 'TODO') {
                     $data->type = 'todo';
                     $data->order = $i;
                     break;
@@ -697,24 +722,6 @@ class Quests implements ParseInterface
                 $data->order = $i;
                 break;
 
-            // 20 possible questions ...
-            case 'Q1':  case 'Q2':  case 'Q3':  case 'Q4':  case 'Q5':
-            case 'Q6':  case 'Q7':  case 'Q8':  case 'Q9':  case 'Q10':
-            case 'Q11': case 'Q12': case 'Q13': case 'Q14': case 'Q15':
-            case 'Q16': case 'Q17': case 'Q18': case 'Q19': case 'Q20':
-            $data->type = 'qa_question';
-            $data->order = intval($command[4]);
-            break;
-
-            // with 20 possible answers ...
-            case 'A1':  case 'A2':  case 'A3':  case 'A4':  case 'A5':
-            case 'A6':  case 'A7':  case 'A8':  case 'A9':  case 'A10':
-            case 'A11': case 'A12': case 'A13': case 'A14': case 'A15':
-            case 'A16': case 'A17': case 'A18': case 'A19': case 'A20':
-            $data->type = 'qa_answer';
-            $data->order = intval($command[4]);
-            break;
-
             default:
                 $npc = ucwords(strtolower($command[3]));
                 $order = isset($command[5]) ? intval($command[5]) : intval($command[4]);
@@ -724,7 +731,6 @@ class Quests implements ParseInterface
                     $npc = ucwords(strtolower($command[4]));
                     $order = intval($command[3]);
                 }
-
 
                 $data->type = 'dialogue';
                 $data->npc = $npc;
