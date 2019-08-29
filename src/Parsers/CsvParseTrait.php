@@ -129,4 +129,18 @@ trait CsvParseTrait
 
         return $info;
     }
+
+    /**
+     * Get either a full CSV or just the row from a single CSV file
+     * Handy dandy function
+     */
+    private function getData($csvFilename, $index = null)
+    {
+        // if index is not null, fetch the row at that index
+        if ($index !== null) {
+            return $this->csvData[$csvFilename]->at($index);
+        }
+
+        return $this->csvData[$csvFilename];
+    }
 }
