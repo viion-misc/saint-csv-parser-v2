@@ -20,34 +20,6 @@ trait CsvParseTrait
     public $ex;
 
     /**
-     * Initialize environment
-     */
-    public function init()
-    {
-        //
-        // Check for ex.json file
-        //
-
-        $cacheDirectory = $this->projectDirectory . getenv('CACHE_DIRECTORY');
-        $exJsonFilename = "$cacheDirectory/ex.json";
-
-        if (!file_exists($exJsonFilename)) {
-            $this->io->text('ex.json file does not exist, downloading from github ...');
-
-            $ex = file_get_contents(getenv('GITHUB_EX_JSON'));
-            if (!$ex) {
-                $this->io->text('<error>Failed to download ex.json from: '. getenv('GITHUB_EX_JSON'));die;
-            }
-
-            file_put_contents($exJsonFilename, $ex);
-            $this->ex = json_decode($ex);
-            $this->io->text('✓ Download complete');
-        }
-
-        return $this;
-    }
-
-    /**
      * Query CSV file from github
      */
     public function csv($content): ParseWrapper

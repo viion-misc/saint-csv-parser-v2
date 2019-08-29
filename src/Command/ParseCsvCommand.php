@@ -31,6 +31,9 @@ class ParseCsvCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        // will probably need this
+        ini_set('memory_limit','-1');
+
         $io = new SymfonyStyle($input, $output);
 
         $io->title('SaintCoinach CSV Parser');
@@ -100,7 +103,6 @@ class ParseCsvCommand extends Command
         $parser
             ->setInputOutput($input, $output)
             ->setProjectDirectory($this->projectDirectory)
-            ->init()
             ->parse();
 
         $stopWatchFinish = microtime(true);
